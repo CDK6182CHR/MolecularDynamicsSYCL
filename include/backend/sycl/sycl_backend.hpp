@@ -160,9 +160,9 @@ EXPORT sycl_backend<T>::sycl_backend(size_t size, const sycl::queue& queue)
 
 #ifdef SYCL_IMPLEMENTATION_ONEAPI
     if (q.get_device().is_cpu()) {
-        max_reduction_size = std::min(64UL, max_reduction_size);
+        max_reduction_size = std::min((size_t) 64, max_reduction_size);
     } else if (q.get_device().is_gpu()) {
-        max_reduction_size = std::min(512UL, max_reduction_size);
+        max_reduction_size = std::min((size_t) 512, max_reduction_size);
     }
 #endif
 }

@@ -48,8 +48,8 @@ template<typename kernel> static inline size_t restrict_work_group_size(size_t s
 }
 
 static inline size_t restrict_work_group_size(size_t size, const sycl::queue& q) noexcept {
-    const auto max_compute_units = std::max(1UL, std::min<size_t>(size, q.get_device().template get_info<sycl::info::device::max_compute_units>()));
-    const auto max_work_group_size = std::max(1UL, std::min<size_t>(size, q.get_device().template get_info<sycl::info::device::max_work_group_size>()));
+    const auto max_compute_units = std::max((size_t)1, std::min<size_t>(size, q.get_device().template get_info<sycl::info::device::max_compute_units>()));
+    const auto max_work_group_size = std::max((size_t) 1, std::min<size_t>(size, q.get_device().template get_info<sycl::info::device::max_work_group_size>()));
     auto rqd_work_per_cu = (size + max_compute_units - 1) / max_compute_units;
     while (rqd_work_per_cu > max_work_group_size) { rqd_work_per_cu /= 2; }
     //std::cout << "rqd_work_per_cu: " << rqd_work_per_cu << std::endl;

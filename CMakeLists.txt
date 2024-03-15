@@ -9,17 +9,19 @@ if (NOT CMAKE_BUILD_TYPE)
             FORCE)
 endif (NOT CMAKE_BUILD_TYPE)
 
-set(WARNINGS "-Wall -Wextra -Wshadow -Wdouble-promotion -Wuninitialized -Wsign-promo -Wredundant-decls -Winit-self -Wmissing-include-dirs -Wdisabled-optimization -Wctor-dtor-privacy")#-Wsign-conversion
-set(DISABLED_WARNINGS "-Wno-assume -Wno-unused-command-line-argument -Wno-tautological-constant-compare -Wno-unknown-warning-option -Wno-linker-warnings -Wno-nonportable-include-path")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -fomit-frame-pointer -march=native -mtune=native -s ${DISABLED_WARNINGS} -DNDEBUG")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=undefined ${WARNINGS} ${DISABLED_WARNINGS}")
-set(CMAKE_SHARED_LINKER_FLAGS "-dead_strip")
+# set(WARNINGS "-Wall -Wextra -Wshadow -Wdouble-promotion -Wuninitialized -Wsign-promo -Wredundant-decls -Winit-self -Wmissing-include-dirs -Wdisabled-optimization -Wctor-dtor-privacy")#-Wsign-conversion
+# set(DISABLED_WARNINGS "-Wno-assume -Wno-unused-command-line-argument -Wno-tautological-constant-compare -Wno-unknown-warning-option -Wno-linker-warnings -Wno-nonportable-include-path")
+# set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -fomit-frame-pointer -march=native -mtune=native -s ${DISABLED_WARNINGS} -DNDEBUG")
+# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=undefined ${WARNINGS} ${DISABLED_WARNINGS}")
+# set(CMAKE_SHARED_LINKER_FLAGS "-dead_strip")
 
-if (APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -I/usr/local/include -L/usr/local/lib -lomp")
-else ()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-endif ()
+#if (APPLE)
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -I/usr/local/include -L/usr/local/lib -lomp")
+#else ()
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+#endif ()
+
+find_package(OpenMP REQUIRED)
 
 #Flags for DPC++. For hipSYCL use -DHIPSYCL_TARGETS=omp;cuda:sm_xx;...
 if (SYCL STREQUAL CUDA)
@@ -57,17 +59,25 @@ add_executable(main_exam main_exam.cpp)
 add_sycl_to_target(TARGET main_exam SOURCES main_exam.cpp)
 
 # OMP BE
-add_library(md_cpu SHARED src/molecular_dynamics_cpu.cpp)
+add_library(md_cpu STATIC src/molecular_dynamics_cpu.cpp)
 add_sycl_to_target(TARGET md_cpu SOURCES src/molecular_dynamics_cpu.cpp)
 target_compile_options(md_cpu PRIVATE "-fvisibility=hidden")
+
+if (OpenMP_CXX_FOUND)
+    target_link_libraries(md_cpu PRIVATE OpenMP::OpenMP_CXX)
+else ()
+    message(STATUS "OpenMP not found!")
+endif ()
 
 target_link_libraries(main PRIVATE md_cpu)
 target_link_libraries(main_exam PRIVATE md_cpu)
 
+install(TARGETS main main_exam)
+
 # SYCL BE
 if (SYCL)
     add_definitions(-DBUILD_SYCL)
-    add_library(md_sycl SHARED src/molecular_dynamics_sycl.cpp)
+    add_library(md_sycl STATIC src/molecular_dynamics_sycl.cpp)
     add_sycl_to_target(TARGET md_sycl SOURCES src/molecular_dynamics_sycl.cpp)
     target_compile_options(md_sycl PRIVATE "-fvisibility=hidden")
     target_link_libraries(main PRIVATE md_sycl)
